@@ -9,7 +9,9 @@ import (
 
 func Example() {
 	timedtask.Run("Downloading files", timedtask.Func(func(task *timedtask.Task) error {
-		for i := 1; i <= 10; i++ {
+		const fileCount = 10
+		task.AddNote(fmt.Sprintf("%d files", fileCount))
+		for i := 1; i <= fileCount; i++ {
 			if download := task.Run(fmt.Sprintf("Downloading file %d", i), timedtask.Func(func(task *timedtask.Task) error {
 				// Download code goes here.
 				if i == 5 {
@@ -45,23 +47,23 @@ func Example() {
 
 	// Output:
 	// Downloading files...
-	//   Downloading file 1... done. 0s
-	//   Downloading file 2... done. 0s
-	//   Downloading file 3... done. 0s
-	//   Downloading file 4... done. 0s
+	//   Downloading file 1... done. (0s)
+	//   Downloading file 2... done. (0s)
+	//   Downloading file 3... done. (0s)
+	//   Downloading file 4... done. (0s)
 	//   Downloading file 5...
 	//     Download took 3 retries.
-	//   Downloading file 5... done. 0s
-	//   Downloading file 6... done. 0s
-	//   Downloading file 7... done. 0s
-	//   Downloading file 8... done. 0s
-	//   Downloading file 9... done. 0s
-	//   Downloading file 10... done. 0s
-	// Downloading files... done. 0s
+	//   Downloading file 5... done. (0s)
+	//   Downloading file 6... done. (0s)
+	//   Downloading file 7... done. (0s)
+	//   Downloading file 8... done. (0s)
+	//   Downloading file 9... done. (0s)
+	//   Downloading file 10... done. (0s)
+	// Downloading files... done. (0s, 10 files)
 	// Crunching data...
-	//   Validating... done. 0s
+	//   Validating... done. (0s)
 	//   Running solver...
-	//     Solving all the things... failed. 0s
-	//   Running solver... failed. 0s
-	// Crunching data... failed. 0s
+	//     Solving all the things... failed. (0s)
+	//   Running solver... failed. (0s)
+	// Crunching data... failed. (0s)
 }

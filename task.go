@@ -15,6 +15,7 @@ type Task struct {
 	checks      []Checkable
 	functions   []Func
 
+	notes   []string
 	start   time.Time
 	end     time.Time
 	flushed bool
@@ -67,6 +68,11 @@ func (task *Task) Duration() time.Duration {
 	return task.end.Sub(task.start)
 }
 
+// AddNote adds a note to the task that will be reported at its completion.
+func (task *Task) AddNote(note string) {
+	task.notes = append(task.notes, note)
+}
+
 // Logf prints the given format and values to stdout with an indendation
 // level matching the task's nesting depth.
 func (task *Task) Logf(format string, a ...any) {
@@ -117,11 +123,13 @@ func (task *Task) run() {
 	}
 	task.end = time.Now()
 
-	duration := task.Duration().Round(time.Millisecond)
+	notes := []string{task.Duration().Round(time.Millisecond).String()}
+	notes = append(notes, task.notes...)
+	suffix := "(" + strings.Join(notes, ", ") + ")"
 
 	if task.err != nil {
 		if task.flushed {
-			task.logf(task.depth, "%s... failed. %s\n", task.description, duration)
+			task.logf(task.depth, "%s... failed. %s\n", task.description, suffix)
 			return
 		}
 
@@ -129,19 +137,19 @@ func (task *Task) run() {
 			if task.parent != nil {
 				task.parent.flush()
 			}
-			task.logf(task.depth, "%s... failed. %s\n", task.description, duration)
+			task.logf(task.depth, "%s... failed. %s\n", task.description, suffix)
 			return
 		}
 
-		task.logf(0, " failed. %s\n", duration)
+		task.logf(0, " failed. %s\n", suffix)
 	} else {
 		if task.flushed {
-			task.logf(task.depth, "%s... done. %s\n", task.description, duration)
+			task.logf(task.depth, "%s... done. %s\n", task.description, suffix)
 			return
 		}
 
 		if !task.quiet {
-			task.logf(0, " done. %s\n", duration)
+			task.logf(0, " done. %s\n", suffix)
 		}
 	}
 }
