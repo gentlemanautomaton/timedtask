@@ -68,9 +68,10 @@ func (task *Task) Duration() time.Duration {
 	return task.end.Sub(task.start)
 }
 
-// AddNote adds a note to the task that will be reported at its completion.
-func (task *Task) AddNote(note string) {
-	task.notes = append(task.notes, note)
+// AddNote adds one or more notes to the task that will be reported at its
+// completion.
+func (task *Task) AddNote(note ...string) {
+	task.notes = append(task.notes, note...)
 }
 
 // Logf prints the given format and values to stdout with an indendation
