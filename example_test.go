@@ -8,42 +8,62 @@ import (
 )
 
 func Example() {
-	timedtask.Run("Downloading files", timedtask.Func(func(task *timedtask.Task) error {
+	downloadTask := timedtask.Spec{
+		Description: "Downloading files",
+	}
+	downloadTask.Run(func(downloadTask *timedtask.Task) error {
 		const fileCount = 10
-		task.AddNote(fmt.Sprintf("%d files", fileCount))
+		downloadTask.AddNote(fmt.Sprintf("%d files", fileCount))
+
 		for i := 1; i <= fileCount; i++ {
-			if download := task.Run(fmt.Sprintf("Downloading file %d", i), timedtask.Func(func(task *timedtask.Task) error {
+			fileTask := timedtask.Spec{
+				Description: fmt.Sprintf("Downloading file %d", i),
+				Parent:      downloadTask,
+			}
+			if err := fileTask.Run(func(fileTask *timedtask.Task) error {
 				// Download code goes here.
 				if i == 5 {
 					const simulatedRetries = 3
-					task.Logf("Download took %d retries.", simulatedRetries)
+					fileTask.Logf("Download took %d retries.", simulatedRetries)
 				}
 				return nil
-			})); download.Err != nil {
-				return download.Err
+			}); err != nil {
+				return err
 			}
 		}
-		return nil
-	}))
 
-	timedtask.Run("Crunching data", timedtask.Func(func(task *timedtask.Task) error {
-		if computations := task.Run("Validating", timedtask.SimpleFunc(func() error {
-			// Data processing code goes here.
+		return nil
+	})
+
+	output, err := timedtask.SpecFor[int]{Description: "Crunching data"}.Run(func(numbersTask *timedtask.Task) (int, error) {
+		validationTask := timedtask.Spec{
+			Description: "Validating",
+			Parent:      numbersTask,
+		}
+		err := validationTask.RunSimple(func() error {
+			// Data validation code goes here.
 			return nil
-		})); computations.Err != nil {
-			return computations.Err
+		})
+		if err != nil {
+			return 0, err
 		}
 
-		if computations := task.Run("Running solver", timedtask.Func(func(task *timedtask.Task) error {
-			return task.Run("Solving all the things", timedtask.SimpleFunc(func() error {
+		solverTask := timedtask.SpecFor[int]{Description: "Running solver", Parent: numbersTask}
+		result, err := solverTask.Run(func(solverTask *timedtask.Task) (int, error) {
+			// Data processing code goes here.
+			value := 7
+			for i := 1; i < 5; i++ {
+				value *= i
+			}
+			return value, timedtask.Spec{Description: "Solving all the things", Parent: solverTask}.RunSimple(func() error {
 				return errors.New("a solution did not present itself")
-			})).Err
-		})); computations.Err != nil {
-			return computations.Err
-		}
+			})
+		})
 
-		return nil
-	}))
+		return result, err
+	})
+
+	fmt.Printf("Result: %d, Error: %s\n", output, err)
 
 	// Output:
 	// Downloading files...
@@ -66,4 +86,5 @@ func Example() {
 	//     Solving all the things... failed. (0s)
 	//   Running solver... failed. (0s)
 	// Crunching data... failed. (0s)
+	// Result: 168, Error: a solution did not present itself
 }

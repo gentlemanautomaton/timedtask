@@ -12,60 +12,21 @@ type Task struct {
 	description string
 	depth       int // The nesting depth of the task, 0 for root tasks
 	quiet       bool
-	checks      []Checkable
-	functions   []Func
 
-	notes   []string
-	start   time.Time
-	end     time.Time
-	flushed bool
-	err     error
-}
-
-// Run runs the given simple task function as a timed task.
-//
-// Information about the task is printed to stdout.
-func Run(description string, options ...Option) Summary {
-	t := Task{
-		description: description,
-	}
-	for _, opt := range options {
-		opt.apply(&t)
-	}
-	t.run()
-	return Summary{
-		Start: t.start,
-		End:   t.end,
-		Err:   t.err,
-	}
-}
-
-// Run runs a subtask with the given options.
-func (task *Task) Run(description string, options ...Option) Summary {
-	child := Task{
-		parent:      task,
-		description: description,
-		depth:       task.depth + 1,
-	}
-	for _, opt := range options {
-		opt.apply(&child)
-	}
-	child.run()
-	return Summary{
-		Start: child.start,
-		End:   child.end,
-		Err:   child.err,
-	}
+	notes     []string
+	startTime time.Time
+	endTime   time.Time
+	flushed   bool
 }
 
 // Duration returns the duration of the task.
 //
 // If the task is still running, it returns the task duration so far.
 func (task *Task) Duration() time.Duration {
-	if task.end.IsZero() {
-		return time.Since(task.start)
+	if task.endTime.IsZero() {
+		return time.Since(task.startTime)
 	}
-	return task.end.Sub(task.start)
+	return task.endTime.Sub(task.startTime)
 }
 
 // AddNote adds one or more notes to the task that will be reported at its
@@ -100,35 +61,28 @@ func (task *Task) log(s string) {
 	fmt.Print(s)
 }
 
-// run executes the task's function and logs the result.
-func (task *Task) run() {
+// start marks the task start time and prints its description if the
+// task is not quiet.
+func (task *Task) start() {
 	if !task.quiet {
 		if task.parent != nil {
 			task.parent.flush()
 		}
 		task.logf(task.depth, "%s...", task.description)
 	}
+	task.startTime = time.Now()
+}
 
-	task.start = time.Now()
-	for _, check := range task.checks {
-		if task.err != nil {
-			break
-		}
-		task.err = check.Err()
-	}
-	for _, function := range task.functions {
-		if task.err != nil {
-			break
-		}
-		task.err = function(task)
-	}
-	task.end = time.Now()
+// start marks the task end time and prints its result if the
+// task is not quiet or if an error was encountered.
+func (task *Task) end(taskErr error) {
+	task.endTime = time.Now()
 
 	notes := []string{task.Duration().Round(time.Millisecond).String()}
 	notes = append(notes, task.notes...)
 	suffix := "(" + strings.Join(notes, ", ") + ")"
 
-	if task.err != nil {
+	if taskErr != nil {
 		if task.flushed {
 			task.logf(task.depth, "%s... failed. %s\n", task.description, suffix)
 			return
