@@ -3,6 +3,7 @@ package timedtask_test
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/gentlemanautomaton/timedtask"
 )
@@ -50,13 +51,15 @@ func Example() {
 
 		solverTask := timedtask.SpecFor[int]{Description: "Running solver", Parent: numbersTask}
 		result, err := solverTask.Run(func(solverTask *timedtask.Task) (int, error) {
-			// Data processing code goes here.
-			value := 7
-			for i := 1; i < 5; i++ {
-				value *= i
-			}
-			return value, timedtask.Spec{Description: "Solving all the things", Parent: solverTask}.RunSimple(func() error {
-				return errors.New("a solution did not present itself")
+			const rounds = 5
+			solverTask.AddNoteWithLabel("Rounds", strconv.Itoa(rounds))
+			return timedtask.SpecFor[int]{Description: "Solving all the things", Parent: solverTask}.RunSimple(func() (int, error) {
+				// Data processing code goes here.
+				value := 7
+				for i := 1; i < rounds; i++ {
+					value *= i
+				}
+				return value, errors.New("a solution did not present itself")
 			})
 		})
 
@@ -84,7 +87,7 @@ func Example() {
 	//   Validating... done. (0s)
 	//   Running solver...
 	//     Solving all the things... failed. (0s)
-	//   Running solver... failed. (0s)
+	//   Running solver... failed. (0s, Rounds: 5)
 	// Crunching data... failed. (0s)
 	// Result: 168, Error: a solution did not present itself
 }

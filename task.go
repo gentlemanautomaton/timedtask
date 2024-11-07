@@ -29,10 +29,28 @@ func (task *Task) Duration() time.Duration {
 	return task.endTime.Sub(task.startTime)
 }
 
-// AddNote adds one or more notes to the task that will be reported at its
-// completion.
-func (task *Task) AddNote(note ...string) {
-	task.notes = append(task.notes, note...)
+// AddNote adds a note to the task that will be reported at its completion.
+//
+// If the note is empty it will not be added.
+func (task *Task) AddNote(note string) {
+	if note == "" {
+		return
+	}
+	task.notes = append(task.notes, note)
+}
+
+// AddNoteWithLabel adds a note to the task that will be reported at its
+// completion. The note will be prefixed with the given label.
+//
+// If the note is empty it will not be added.
+func (task *Task) AddNoteWithLabel(label, note string) {
+	if note == "" {
+		return
+	}
+	if label != "" {
+		note = label + ": " + note
+	}
+	task.notes = append(task.notes, note)
 }
 
 // Logf prints the given format and values to stdout with an indendation
