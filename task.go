@@ -2,6 +2,7 @@ package timedtask
 
 import (
 	"fmt"
+	"io"
 	"strings"
 	"time"
 )
@@ -12,6 +13,7 @@ type Task struct {
 	description string
 	depth       int // The nesting depth of the task, 0 for root tasks
 	quiet       bool
+	writer      io.Writer
 
 	notes     []string
 	startTime time.Time
@@ -76,7 +78,11 @@ func (task *Task) logf(depth int, format string, a ...any) {
 
 // log writes the given string to the log.
 func (task *Task) log(s string) {
-	fmt.Print(s)
+	if task.writer != nil {
+		task.writer.Write([]byte(s))
+	} else {
+		fmt.Print(s)
+	}
 }
 
 // start marks the task start time and prints its description if the

@@ -1,6 +1,9 @@
 package timedtask
 
-import "context"
+import (
+	"context"
+	"io"
+)
 
 // Spec is a specification for a timed task.
 type Spec struct {
@@ -12,6 +15,11 @@ type Spec struct {
 
 	// Quiet tasks will not be printed under normal circumstances.
 	Quiet bool
+
+	// Writer specifies a writer for the task to write its output to.
+	// If nil, it will use the writer of its parent task, if available,
+	// othwerwise it will write to os.Stdout.
+	Writer io.Writer
 }
 
 // Run executes the given function as a timed task with the parameters from s.
@@ -28,11 +36,17 @@ func (s Spec) RunCtx(ctx context.Context, f Func) error {
 		return err
 	}
 
+	writer := s.Writer
+	if writer == nil && s.Parent != nil {
+		writer = s.Parent.writer
+	}
+
 	task := Task{
 		parent:      s.Parent,
 		description: s.Description,
 		depth:       childTaskDepth(s.Parent),
 		quiet:       s.Quiet,
+		writer:      writer,
 	}
 
 	task.start()
